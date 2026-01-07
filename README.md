@@ -1,4 +1,4 @@
-##Stellar🌌 — AI-Powered OTT Streaming Platform ⭐⭐⭐⭐⭐
+## Stellar🌌 — AI-Powered OTT Streaming Platform ⭐⭐⭐⭐⭐
 
 Stellar is a full-stack OTT streaming platform built to deliver a
 modern, immersive movie and TV series experience. The platform
