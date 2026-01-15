@@ -5,10 +5,24 @@ import { Route, Routes } from 'react-router'
 import Moviepage from './pages/Moviepage'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
+import { useEffect } from "react";
+import {Toaster} from "react-hot-toast";
+import { useAuthStore } from "./store/authStore";
 
 const App = () => {
+   const {fetchUser, fetchingUser} = useAuthStore();
+   
+    useEffect(() => {
+    fetchUser()
+  }, [fetchUser])
+
+  if(fetchingUser){
+    return <p className="text-[#e50914]">Loading...</p>
+  }
+
   return (
     <div>
+      <Toaster/>
       <Navbar />
       
       <Routes>
