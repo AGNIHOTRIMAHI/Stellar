@@ -8,7 +8,7 @@ import SignUp from './pages/SignUp'
 import { useEffect } from "react";
 import {Toaster} from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
-
+import AIRecommendations from "./pages/AIRecommendations";
 const App = () => {
    const {fetchUser, fetchingUser} = useAuthStore();
    
