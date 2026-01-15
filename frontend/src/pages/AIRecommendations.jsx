@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "react-hot-toast";
-// import { getAIRecommendation } from "../lib/AIModel";
-// import RecommendedMovies from "../components/RecommendedMovies";
+import { getAIRecommendation } from "../lib/AIModel";
+import RecommendedMovies from "../components/RecommendedMovies";
 
 const steps = [
   {
@@ -46,14 +46,12 @@ const steps = [
   },
 ];
 
-
 const initialState = steps.reduce((acc, step) => {
   acc[step.name] = "";
   return acc;
 }, {});
 
 const AIRecommendations = () => {
-
   const [inputs, setInputs] = useState(initialState);
   const [step, setStep] = useState(0);
   const [recommendation, setRecommendation] = useState([]);
@@ -78,8 +76,77 @@ const AIRecommendations = () => {
     }
   };
 
+  const generateRecommendations = async () => {
+    if (!inputs) {
+      toast("Please enter your inputs.");
+    }
+
+    setIsLoading(true);
+
+    const userPrompt = `Given the following user inputs:
+
+- Decade: ${inputs.decade}
+- Genre: ${inputs.genre}
+- Language: ${inputs.language}
+- Length: ${inputs.length}
+- Mood: ${inputs.mood}
+
+Recommend 10 ${inputs.mood.toLowerCase()} ${
+      inputs.language
+    }-language ${inputs.genre.toLowerCase()} movies released in the ${
+      inputs.decade
+    } with a runtime between ${
+      inputs.length
+    }. Return the list as plain JSON array of movie titles only, No extra text, no explanations, no code blocks, no markdown, just the JSON array.
+    example:
+[
+  "Movie Title 1",
+  "Movie Title 2",
+  "Movie Title 3",
+  "Movie Title 4",
+  "Movie Title 5",
+  "Movie Title 6",
+  "Movie Title 7",
+  "Movie Title 8",
+  "Movie Title 9",
+  "Movie Title 10"
+]`;
+
+    const result = await getAIRecommendation(userPrompt);
+
+    setIsLoading(false);
+
+    if (result) {
+      const cleanedResult = result
+        .replace(/```json\n/i, "")
+        .replace(/\n```/i, "");
+      try {
+        const recommendationArray = JSON.parse(cleanedResult);
+        setRecommendation(recommendationArray);
+        console.log(recommendationArray);
+      } catch (error) {
+        console.log("Error: ", error);
+      }
+    } else {
+      toast.error("Failed to get recommendations.");
+    }
+  };
   return (
-    <div className="relative w-full max-w-md mx-auto rounded-2xl bg-[#181818]/90 shadow-2xl border border-[#333] px-8 py-10 mt-4 flex flex-col items-center min-h-[480px]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#181818] via-[#232323] to-[#181818] relative overflow-hidden">
+      {!(recommendation && recommendation.length > 0) && (
+        <img
+          src="/background_banner.jpg"
+          className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[2px] "
+        />
+      )}
+
+      {recommendation && recommendation.length > 0 ? (
+        <div className="w-full max-w-7xl mx-auto mt-2">
+          <h2 className="text-2xl font-bold text-white mb-4 text-center">AI Recommended Movies</h2>
+          <RecommendedMovies movieTitles={recommendation} />
+        </div>
+      ) : (
+        <div className="relative w-full max-w-md mx-auto rounded-2xl bg-[#181818]/90 shadow-2xl border border-[#333] px-8 py-10 mt-4 flex flex-col items-center min-h-[480px]">
           <h2 className="text-3xl font-extrabold mb-8 text-center text-white tracking-tight drop-shadow-lg">
             AI Movie Recommendation
           </h2>
@@ -144,7 +211,9 @@ const AIRecommendations = () => {
             </div>
           </div>
         </div>
-  )
-}
+      )}
+    </div>
+  );
+};
 
-export default AIRecommendations
+export default AIRecommendations;
