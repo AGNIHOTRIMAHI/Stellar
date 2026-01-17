@@ -1,18 +1,26 @@
-import { Play } from "lucide-react";
-import { useAuthStore } from "../store/authStore";
-
-import React, { useEffect, useState } from "react";
+import { Play, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
 const Moviepage = () => {
   const { id } = useParams();
+
   const [movie, setMovie] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [trailerKey, setTrailerKey] = useState(null);
+
+  // Trailer
+  const [showTrailer, setShowTrailer] = useState(false);
+  const trailerRef = useRef(null);
+
+  // AI Insight
+  const [trailerInsight, setTrailerInsight] = useState(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+
+  // ✅ COMMENTS (NEW)
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
-const [comments, setComments] = useState([]);
-const { user } = useAuthStore();
+  const [comments, setComments] = useState([]);
 
   const options = {
     method: "GET",
@@ -22,6 +30,9 @@ const { user } = useAuthStore();
         "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3NjkzNTQ3Y2EwZTRjMDZiZGFjM2I0MWIxMzVkMjQ2ZCIsIm5iZiI6MTc2ODE1ODUxMi4wMiwic3ViIjoiNjk2M2Y1MzA2MzcxMmRiMWQ0OTBkMTkxIiwic2NvcGVzIjpbImFwaV9yZWFkIl0sInZlcnNpb24iOjF9.TwbgPEkR1KYwKlu38XRpc6zhLpvEoKw3ipDWcKORoLQ",
     },
   };
+
+  /* ---------------- COMMENTS ---------------- */
+
   const fetchComments = async () => {
     try {
       const res = await fetch(
@@ -34,10 +45,10 @@ const { user } = useAuthStore();
       console.error(err);
     }
   };
-  
+
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
-  
+
     try {
       const res = await fetch("http://localhost:5000/api/comments", {
         method: "POST",
@@ -48,31 +59,27 @@ const { user } = useAuthStore();
           text: commentText,
         }),
       });
-  
-      if (!res.ok) {
-        throw new Error("Failed to post comment");
-      }
-  
-      // Clear input
+
+      if (!res.ok) throw new Error("Failed to post comment");
+
       setCommentText("");
-  
-      // 🔥 Re-fetch comments so UI updates
-      await fetchComments();
-  
+      fetchComments();
     } catch (err) {
       console.error("POST ERROR:", err);
     }
   };
-  useEffect(() => {
-    fetchComments();
-  }, [id]);
-  
+
+  /* ---------------- FETCH MOVIE ---------------- */
 
   useEffect(() => {
+    setTrailerInsight(null);
+    setShowTrailer(false);
+    fetchComments(); // ✅ load comments per movie
+
     fetch(`https://api.themoviedb.org/3/movie/${id}?language=en-US`, options)
       .then((res) => res.json())
-      .then((res) => setMovie(res))
-      .catch((err) => console.error(err));
+      .then(setMovie)
+      .catch(console.error);
 
     fetch(
       `https://api.themoviedb.org/3/movie/${id}/recommendations?language=en-US&page=1`,
@@ -80,7 +87,7 @@ const { user } = useAuthStore();
     )
       .then((res) => res.json())
       .then((res) => setRecommendations(res.results || []))
-      .catch((err) => console.error(err));
+      .catch(console.error);
 
     fetch(
       `https://api.themoviedb.org/3/movie/${id}/videos?language=en-US`,
@@ -88,233 +95,256 @@ const { user } = useAuthStore();
     )
       .then((res) => res.json())
       .then((res) => {
-        const trailer = res.results?.find(
-          (vid) => vid.site === "YouTube" && vid.type === "Trailer"
-        );
+        const vids = res.results || [];
+        const trailer =
+          vids.find((v) => v.site === "YouTube" && v.type === "Trailer") ||
+          vids.find((v) => v.site === "YouTube" && v.type === "Teaser");
         setTrailerKey(trailer?.key || null);
       })
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, [id]);
+
+  /* ---------------- TRAILER ---------------- */
+
+  const toggleTrailer = () => {
+    if (!trailerKey) return;
+    setShowTrailer((prev) => {
+      const next = !prev;
+      if (!prev) {
+        setTimeout(() => {
+          trailerRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 0);
+      }
+      return next;
+    });
+  };
+
+  /* ---------------- AI INSIGHT ---------------- */
+
+  const summarizeTrailer = async () => {
+    if (isSummarizing || !movie) return;
+    setIsSummarizing(true);
+
+    try {
+      const prompt = `
+Describe how this trailer FEELS to watch.
+No plot spoilers.
+Emotion, pacing, vibe only.
+
+"${movie.overview}"
+`;
+
+      const { getAIRecommendation } = await import("../lib/AIModel");
+      const aiText = await getAIRecommendation(prompt);
+
+      setTrailerInsight({
+        tone: "Energetic & Quirky",
+        pace: "Fast-paced ⚡",
+        vibe: movie.genres.map((g) => g.name).slice(0, 3).join(", "),
+        audience:
+          "Perfect for viewers who enjoy adventurous stories with humor and heart.",
+        story: aiText.replace(/```/g, "").trim(),
+      });
+    } catch {}
+
+    setIsSummarizing(false);
+  };
 
   if (!movie) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <span className="text-xl text-purple-500">Loading...</span>
+      <div className="flex items-center justify-center h-screen text-purple-500">
+        Loading...
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-[#181818] text-white">
+      {/* HERO */}
       <div
-        className="relative h-[60vh] flex item-end"
+        className="relative h-[60vh]"
         style={{
           backgroundImage: `url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-transparent" />
 
         <div className="relative z-10 flex items-end p-8 gap-8">
           <img
             src={`https://image.tmdb.org/t/p/original${movie.poster_path}`}
             className="rounded-lg shadow-lg w-48 hidden md:block"
+            alt={movie.title}
           />
 
           <div>
-            <h1 className="text-4xl font-bold mb-2">{movie.title}</h1>
-            <div className="flex items-center gap-4 mb-2">
-              <span>⭐ {movie.vote_average?.toFixed(1)}</span>
+            <h1 className="text-4xl font-bold">{movie.title}</h1>
+
+            <div className="flex gap-4 mt-2 text-sm">
+              <span>⭐ {movie.vote_average.toFixed(1)}</span>
               <span>{movie.release_date}</span>
               <span>{movie.runtime} min</span>
             </div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {movie.genres.map((genre) => (
-                <span className="bg-gray-800 px-3 py-1 rounded-full text-sm">
-                  {genre.name}
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {movie.genres.map((g) => (
+                <span
+                  key={g.id}
+                  className="bg-gray-800 px-3 py-1 rounded-full text-sm"
+                >
+                  {g.name}
                 </span>
               ))}
             </div>
-            <p className="max-w-2xl text-gray-200">{movie.overview}</p>
-            <Link
-              to={`https://www.youtube.com/watch?v=${trailerKey}`}
-              target="_blank"
-            >
-              <button className="flex justify-center items-center text-white hover:bg-gray-200 bg-[#5b21b6] py-3 px-4 rounded-full cursor-pointer text-sm md:text-base mt-2 md:mt-4">
-                <Play className="mr-2 w-4 h-5 md:w-5 md:h-5" />
-                Watch Now
-              </button>
-            </Link>
-            <button
-                onClick={() => setShowComments(!showComments)}
-                className="mt-3 md:mt-5 border border-purple-500 text-purple-400 hover:bg-purple-600 hover:text-white transition py-2 px-4 rounded-full text-sm md:text-base"
+
+            <p className="max-w-2xl mt-4 text-gray-200">{movie.overview}</p>
+
+            <div className="flex gap-3 mt-5 flex-wrap">
+              <button
+                onClick={toggleTrailer}
+                disabled={!trailerKey}
+                className={`flex items-center px-4 py-3 rounded-full text-sm ${
+                  trailerKey
+                    ? "bg-purple-700 hover:bg-purple-600"
+                    : "bg-gray-700 opacity-70 cursor-not-allowed"
+                }`}
               >
-                {showComments
-                  ? "Hide Comments & Reviews"
-                  : "Comments & Reviews"}
+                {showTrailer ? (
+                  <X className="mr-2 w-5 h-5" />
+                ) : (
+                  <Play className="mr-2 w-5 h-5" />
+                )}
+                Watch Trailer
               </button>
+
+              <button
+                onClick={summarizeTrailer}
+                disabled={isSummarizing}
+                className={`px-4 py-3 rounded-full text-sm ${
+                  isSummarizing
+                    ? "bg-gray-600"
+                    : "bg-purple-900 hover:bg-purple-800"
+                }`}
+              >
+                {isSummarizing ? "Analyzing..." : "AI Trailer Insight"}
+              </button>
+
+              {/* ✅ COMMENTS BUTTON */}
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="px-4 py-3 rounded-full text-sm bg-purple-800 hover:bg-purple-700"
+              >
+                {showComments ? "Hide Comments" : "Comments & Reviews"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* EMBEDDED TRAILER */}
+      <div ref={trailerRef} className="px-8">
+        {showTrailer && trailerKey && (
+          <div className="max-w-5xl mx-auto -mt-10 mb-10">
+            <div className="relative overflow-visible">
+              <div className="rounded-2xl overflow-hidden border border-purple-500/20 bg-black shadow-xl">
+                <div className="relative w-full pt-[56.25%]">
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={`https://www.youtube-nocookie.com/embed/${trailerKey}?rel=0`}
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DETAILS + AI INSIGHT */}
+      <div className="p-8">
+        <div className="bg-[#232323] rounded-xl p-6">
+          {trailerInsight && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InsightCard title="🎭 Tone" value={trailerInsight.tone} />
+                <InsightCard title="⚡ Pace" value={trailerInsight.pace} />
+                <InsightCard title="🎬 Vibe" value={trailerInsight.vibe} />
+                <InsightCard
+                  title="👀 Best For"
+                  value={trailerInsight.audience}
+                />
+              </div>
+
+              <div className="mt-6 bg-[#1f1f1f] p-5 rounded-xl">
+                <p className="text-gray-300 text-sm">
+                  {trailerInsight.story}
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* COMMENTS */}
       {showComments && (
         <div className="p-8">
           <h2 className="text-2xl font-semibold mb-4">Comments & Reviews</h2>
 
-          <div className="bg-[#232323] rounded-lg p-6 space-y-6">
-            {/* Add Comment */}
-            <div>
-            <textarea
-  value={commentText}
-  onChange={(e) => setCommentText(e.target.value)}
-  placeholder="Write your comment or review..."
-  className="w-full bg-[#181818] border border-gray-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-purple-500"
-  rows={4}
-/>
-<button
-  onClick={handlePostComment}
-  className="mt-3 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm"
->
-  Post Comment
-</button>
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            className="w-full bg-[#232323] p-3 rounded mb-3"
+            placeholder="Write a comment..."
+          />
 
-            </div>
+          <button
+            onClick={handlePostComment}
+            className="bg-purple-600 px-4 py-2 rounded"
+          >
+            Post Comment
+          </button>
 
-            <div className="space-y-4">
-  {comments.length === 0 ? (
-    <p className="text-gray-400 text-sm">
-      No comments yet. Be the first to comment!
-    </p>
-  ) : (
-    comments.map((comment) => (
-        <div
-          key={comment._id}
-          className="border-b border-gray-700 pb-3"
-        >
-          <p className="text-sm text-gray-300">
-            <span className="font-semibold text-white">
-              {comment.username}:
-            </span>{" "}
-            {comment.text}
-          </p>
-          <span className="text-xs text-gray-500">
-            {new Date(comment.createdAt).toLocaleString()}
-          </span>
-        </div>
-      ))
-      
-  )}
-</div>
-
+          <div className="mt-6 space-y-4">
+            {comments.length === 0 ? (
+              <p className="text-gray-400 text-sm">
+                No comments yet. Be the first to comment!
+              </p>
+            ) : (
+              comments.map((c) => (
+                <div key={c._id} className="border-b border-gray-700 pb-2">
+                  <span className="font-semibold">{c.username}:</span>{" "}
+                  {c.text}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
 
-      <div className="p-8">
-        <h2 className="text-2xl font-semibold mb-4">Details</h2>
-        <div className="bg-[#232323] rounded-lg shadow-lg p-6 flex flex-col md:flex-row gap-8">
-          <div className="flex-1">
-            <ul className="text-gray-300 space-y-3">
-              <li>
-                <span className="font-semibold text-white">Status: </span>
-                <span className="ml-2">{movie.status}</span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">Release Date: </span>
-                <span className="ml-2">{movie.release_date}</span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">
-                  Original Laguage:
-                </span>
-                <span className="ml-2">
-                  {movie.original_language?.toUpperCase()}
-                </span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">Budget: </span>
-                <span className="ml-2">
-                  {movie.budget ? `$${movie.budget.toLocaleString()}` : "N/A"}
-                </span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">Revenue:</span>{" "}
-                <span className="ml-2">
-                  {movie.revenue ? `$${movie.revenue.toLocaleString()}` : "N/A"}
-                </span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">
-                  Production Companies:{" "}
-                </span>
-                <span className="ml-2">
-                  {movie.production_companies &&
-                  movie.production_companies.length > 0
-                    ? movie.production_companies.map((c) => c.name).join(", ")
-                    : "N/A"}
-                </span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">Countries: </span>
-                <span className="ml-2">
-                  {movie.production_countries &&
-                  movie.production_countries.length > 0
-                    ? movie.production_countries.map((c) => c.name).join(", ")
-                    : "N/A"}
-                </span>
-              </li>
-              <li>
-                <span className="font-semibold text-white">
-                  Spoken Languages:{" "}
-                </span>
-                <span className="ml-2">
-                  {movie.spoken_languages && movie.spoken_languages.length > 0
-                    ? movie.spoken_languages
-                        .map((l) => l.english_name)
-                        .join(", ")
-                    : "N/A"}
-                </span>
-              </li>
-            </ul>
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-white mb-2">Tagline</h3>
-            <p className="italic text-gray-400 mb-6">
-              {movie.tagline || "No tagline available."}
-            </p>
-
-            <h3 className="font-semibold text-white mb-2">Overview</h3>
-
-            <p classname="text-gray-200">{movie.overview}</p>
-          </div>
-        </div>
-      </div>
-      
+      {/* RECOMMENDATIONS */}
       {recommendations.length > 0 && (
         <div className="p-8">
           <h2 className="text-2xl font-semibold mb-4">
             You might also like...
           </h2>
 
-          <div className="grid gird-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {recommendations.slice(0, 10).map((rec) => (
-              <div
+              <Link
                 key={rec.id}
+                to={`/movie/${rec.id}`}
                 className="bg-[#232323] rounded-lg overflow-hidden hover:scale-105 transition"
               >
-                <Link to={`/movie/${rec.id}`}>
-                  <img
-                    src={`https://image.tmdb.org/t/p/w300${rec.poster_path}`}
-                    className="w-full h-48 object-cover"
-                  />
-
-                  <div className="p-2">
-                    <h3 className="text-sm font-semibold">{rec.title}</h3>
-                    <span className="text-xs text-gray-400">
-                      {rec.release_date?.slice(0, 4)}
-                    </span>
-                  </div>
-                </Link>
-              </div>
+                <img
+                  src={`https://image.tmdb.org/t/p/w300${rec.poster_path}`}
+                  className="w-full h-48 object-cover"
+                  alt={rec.title}
+                />
+              </Link>
             ))}
           </div>
         </div>
@@ -322,5 +352,12 @@ const { user } = useAuthStore();
     </div>
   );
 };
+
+const InsightCard = ({ title, value }) => (
+  <div className="bg-[#1f1f1f] p-4 rounded-xl border border-purple-500/30">
+    <span className="text-purple-400 font-semibold">{title}</span>
+    <p className="text-gray-300 mt-1 text-sm">{value}</p>
+  </div>
+);
 
 export default Moviepage;
