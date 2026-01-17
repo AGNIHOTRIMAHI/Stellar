@@ -22,20 +22,50 @@ const { user } = useAuthStore();
         "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3NjkzNTQ3Y2EwZTRjMDZiZGFjM2I0MWIxMzVkMjQ2ZCIsIm5iZiI6MTc2ODE1ODUxMi4wMiwic3ViIjoiNjk2M2Y1MzA2MzcxMmRiMWQ0OTBkMTkxIiwic2NvcGVzIjpbImFwaV9yZWFkIl0sInZlcnNpb24iOjF9.TwbgPEkR1KYwKlu38XRpc6zhLpvEoKw3ipDWcKORoLQ",
     },
   };
-
-  const handlePostComment = () => {
+  const fetchComments = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/comments/${id}`,
+        { credentials: "include" }
+      );
+      const data = await res.json();
+      setComments(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  
+  const handlePostComment = async () => {
     if (!commentText.trim()) return;
   
-    const newComment = {
-      id: Date.now(),          // temporary unique id
-      user: user?.username || "Guest User",      // later replace with auth user
-      text: commentText,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const res = await fetch("http://localhost:5000/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          movieId: String(id),
+          text: commentText,
+        }),
+      });
   
-    setComments([newComment, ...comments]);
-    setCommentText("");
+      if (!res.ok) {
+        throw new Error("Failed to post comment");
+      }
+  
+      // Clear input
+      setCommentText("");
+  
+      // 🔥 Re-fetch comments so UI updates
+      await fetchComments();
+  
+    } catch (err) {
+      console.error("POST ERROR:", err);
+    }
   };
+  useEffect(() => {
+    fetchComments();
+  }, [id]);
   
 
   useEffect(() => {
@@ -156,21 +186,22 @@ const { user } = useAuthStore();
     </p>
   ) : (
     comments.map((comment) => (
-      <div
-        key={comment.id}
-        className="border-b border-gray-700 pb-3"
-      >
-        <p className="text-sm text-gray-300">
-          <span className="font-semibold text-white">
-            {comment.user}:
-          </span>{" "}
-          {comment.text}
-        </p>
-        <span className="text-xs text-gray-500">
-          {new Date(comment.createdAt).toLocaleString()}
-        </span>
-      </div>
-    ))
+        <div
+          key={comment._id}
+          className="border-b border-gray-700 pb-3"
+        >
+          <p className="text-sm text-gray-300">
+            <span className="font-semibold text-white">
+              {comment.username}:
+            </span>{" "}
+            {comment.text}
+          </p>
+          <span className="text-xs text-gray-500">
+            {new Date(comment.createdAt).toLocaleString()}
+          </span>
+        </div>
+      ))
+      
   )}
 </div>
 

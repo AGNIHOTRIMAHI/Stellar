@@ -3,6 +3,9 @@ import { connectToDB } from "./config/db.js";
 import dotenv from "dotenv";
 import bcryptjs from "bcryptjs";
 import User from "./models/user.model.js";
+import mongoose from "mongoose";
+import Comment from "./models/comment.model.js";
+
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -11,6 +14,27 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const protect = async (req, res, next) => {
+  const { token } = req.cookies;
+
+  if (!token) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
 
 app.use(express.json());
 app.use(cookieParser());
@@ -143,6 +167,41 @@ app.post("/api/logout", async (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Logged out successfully" });
 });
+
+app.post("/api/comments", protect, async (req, res) => {
+  try {
+    const { movieId, text } = req.body;
+
+
+    if (!movieId || !text) {
+      return res.status(400).json({ message: "movieId and text required" });
+    }
+
+    const comment = await Comment.create({
+      movieId: String(movieId),
+      text,
+      userId: req.user._id,
+      username: req.user.username,
+    });
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error("COMMENT ERROR:", error.message);
+    res.status(400).json({ message: error.message });
+  }
+});
+app.get("/api/comments/:movieId", async (req, res) => {
+  try {
+    const comments = await Comment.find({
+      movieId: String(req.params.movieId),
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json(comments);
+  } catch (error) {
+    console.error("GET COMMENTS ERROR:", error.message);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 
 app.listen(PORT,()=>{
     connectToDB();
