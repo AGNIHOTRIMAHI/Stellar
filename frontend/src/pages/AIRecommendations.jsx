@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+/*import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 import { getAIRecommendation } from "../lib/AIModel";
 import RecommendedMovies from "../components/RecommendedMovies";
@@ -209,6 +209,106 @@ Recommend 10 ${inputs.mood.toLowerCase()} ${
                 {step === steps.length - 1 ? "Finish" : "Next"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AIRecommendations;*/
+
+import React, { useState } from "react";
+import { toast } from "react-hot-toast";
+import { getAIRecommendation } from "../lib/AIModel";
+import RecommendedMovies from "../components/RecommendedMovies";
+
+const steps = [
+  { name: "genre", label: "What's your favorite genre?", options: ["Action", "Comedy", "Drama", "Horror", "Romance", "Sci-Fi", "Animation"] },
+  { name: "mood", label: "What's your current mood?", options: ["Excited", "Relaxed", "Thoughtful", "Scared", "Inspired", "Romantic"] },
+  { name: "decade", label: "Preferred decade?", options: ["2020s", "2010s", "2000s", "1990s", "Older"] },
+  { name: "language", label: "Preferred language?", options: ["English", "Korean", "Spanish", "French", "Other"] },
+  { name: "length", label: "Preferred movie length?", options: ["Short (<90 min)", "Standard (90-120 min)", "Long (>120 min)"] },
+];
+
+const initialState = { genre: "", mood: "", decade: "", language: "", length: "" };
+
+const AIRecommendations = () => {
+  const [inputs, setInputs] = useState(initialState);
+  const [step, setStep] = useState(0);
+  const [recommendation, setRecommendation] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOption = (value) => {
+    setInputs((prev) => ({ ...prev, [steps[step].name]: value }));
+  };
+
+  const handleNext = () => {
+    if (step < steps.length - 1) setStep(step + 1);
+  };
+
+  const generateRecommendations = async () => {
+    if (isLoading) return; // Re-entry check
+
+    setIsLoading(true);
+    const loadingToast = toast.loading("AI is searching movies...");
+
+    const userPrompt = `Return a JSON array of 10 movie titles. 
+    Context: Genre ${inputs.genre}, Mood ${inputs.mood}, Decade ${inputs.decade}, Language ${inputs.language}, Length ${inputs.length}.
+    Format: ["Movie 1", "Movie 2"]`;
+
+    try {
+      const result = await getAIRecommendation(userPrompt);
+      if (result) {
+        const cleanedResult = result.replace(/```json|```/gi, "").trim();
+        setRecommendation(JSON.parse(cleanedResult));
+        toast.success("Found some great movies!", { id: loadingToast });
+      }
+    } catch (error) {
+      console.error(error);
+      if (error.message?.includes("429")) {
+        toast.error("Google's limit reached. Please wait 40-60 seconds.", { id: loadingToast });
+      } else {
+        toast.error("Connection error. Try again.", { id: loadingToast });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#181818] p-4">
+      {recommendation.length > 0 ? (
+        <div className="w-full max-w-7xl">
+          <RecommendedMovies movieTitles={recommendation} />
+          <button onClick={() => window.location.reload()} className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg mx-auto block">Try Again</button>
+        </div>
+      ) : (
+        <div className="w-full max-w-md bg-[#232323] p-8 rounded-2xl border border-gray-700 shadow-xl">
+          <div className="mb-6 h-1.5 w-full bg-gray-800 rounded-full">
+            <div className="h-full bg-purple-600 transition-all" style={{ width: `${((step + 1) / steps.length) * 100}%` }}></div>
+          </div>
+          <h3 className="text-xl text-white font-bold mb-6 text-center">{steps[step].label}</h3>
+          <div className="grid gap-3 mb-8">
+            {steps[step].options.map((opt) => (
+              <button 
+                key={opt} 
+                onClick={() => handleOption(opt)}
+                className={`py-3 rounded-lg border transition ${inputs[steps[step].name] === opt ? "bg-purple-600 border-purple-700 text-white" : "bg-gray-800 border-gray-600 text-gray-300 hover:border-red-600"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between">
+            <button onClick={() => setStep(step - 1)} disabled={step === 0 || isLoading} className="text-gray-400 disabled:opacity-30">Back</button>
+            <button 
+              onClick={step === steps.length - 1 ? generateRecommendations : handleNext} 
+              disabled={!inputs[steps[step].name] || isLoading}
+              className="bg-purple-600 px-8 py-2 rounded-lg text-white font-bold disabled:bg-gray-700"
+            >
+              {isLoading ? "Loading..." : step === steps.length - 1 ? "Finish" : "Next"}
+            </button>
           </div>
         </div>
       )}
