@@ -1,9 +1,11 @@
 import { Play, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const Moviepage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [movie, setMovie] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -124,12 +126,48 @@ const Moviepage = () => {
 
   /* ---------------- AI INSIGHT ---------------- */
 
-  const summarizeTrailer = async () => {
-    if (isSummarizing || !movie) return;
-    setIsSummarizing(true);
+//   const summarizeTrailer = async () => {
+//     if (isSummarizing || !movie) return;
+//     setIsSummarizing(true);
 
-    try {
-      const prompt = `
+//     try {
+//       const prompt = `
+// Describe how this trailer FEELS to watch.
+// No plot spoilers.
+// Emotion, pacing, vibe only.
+
+// "${movie.overview}"
+// `;
+
+//       const { getAIRecommendation } = await import("../lib/AIModel");
+//       const aiText = await getAIRecommendation(prompt);
+
+//       setTrailerInsight({
+//         tone: "Energetic & Quirky",
+//         pace: "Fast-paced ⚡",
+//         vibe: movie.genres.map((g) => g.name).slice(0, 3).join(", "),
+//         audience:
+//           "Perfect for viewers who enjoy adventurous stories with humor and heart.",
+//         story: aiText.replace(/```/g, "").trim(),
+//       });
+//     } catch {}
+
+//     setIsSummarizing(false);
+//   };
+
+//   if (!movie) {
+//     return (
+//       <div className="flex items-center justify-center h-screen text-purple-500">
+//         Loading...
+//       </div>
+//     );
+//   }
+const summarizeTrailer = async () => {
+  if (isSummarizing || !movie) return;
+  setIsSummarizing(true);
+
+  try {
+    const prompt = `
 Describe how this trailer FEELS to watch.
 No plot spoilers.
 Emotion, pacing, vibe only.
@@ -137,9 +175,10 @@ Emotion, pacing, vibe only.
 "${movie.overview}"
 `;
 
-      const { getAIRecommendation } = await import("../lib/AIModel");
-      const aiText = await getAIRecommendation(prompt);
+    const { getAIRecommendation } = await import("../lib/AIModel");
+    const aiText = await getAIRecommendation(prompt);
 
+    if (aiText && aiText.trim()) {
       setTrailerInsight({
         tone: "Energetic & Quirky",
         pace: "Fast-paced ⚡",
@@ -148,18 +187,24 @@ Emotion, pacing, vibe only.
           "Perfect for viewers who enjoy adventurous stories with humor and heart.",
         story: aiText.replace(/```/g, "").trim(),
       });
-    } catch {}
-
-    setIsSummarizing(false);
-  };
-
-  if (!movie) {
-    return (
-      <div className="flex items-center justify-center h-screen text-purple-500">
-        Loading...
-      </div>
-    );
+    } else {
+      throw new Error("Empty AI response");
+    }
+  } catch (err) {
+    // ✅ FALLBACK (important)
+    setTrailerInsight({
+      tone: movie.vote_average > 7 ? "High-energy & Engaging" : "Light & Casual",
+      pace:
+        movie.runtime < 110 ? "Fast-paced ⚡" : "Balanced ⏱",
+      vibe: movie.genres.map((g) => g.name).slice(0, 3).join(", "),
+      audience: "Great for fans of immersive cinematic experiences",
+      story:
+        "This trailer focuses on mood rather than plot. It builds excitement through visuals, music, and pacing, giving a strong sense of the film’s emotional energy without revealing story details.",
+    });
   }
+
+  setIsSummarizing(false);
+};
 
   return (
     <div className="min-h-screen bg-[#181818] text-white">
@@ -227,7 +272,7 @@ Emotion, pacing, vibe only.
                 className={`px-4 py-3 rounded-full text-sm ${
                   isSummarizing
                     ? "bg-gray-600"
-                    : "bg-purple-900 hover:bg-purple-800"
+                    : "bg-purple-700 hover:bg-purple-600"
                 }`}
               >
                 {isSummarizing ? "Analyzing..." : "AI Trailer Insight"}
@@ -236,10 +281,18 @@ Emotion, pacing, vibe only.
               {/* ✅ COMMENTS BUTTON */}
               <button
                 onClick={() => setShowComments(!showComments)}
-                className="px-4 py-3 rounded-full text-sm bg-purple-800 hover:bg-purple-700"
+                className="px-4 py-3 rounded-full text-sm bg-purple-700 hover:bg-purple-600"
               >
                 {showComments ? "Hide Comments" : "Comments & Reviews"}
               </button>
+
+              <button
+  onClick={() => navigate(`/book/${id}`)}
+  className="px-4 py-3 rounded-full text-sm bg-purple-700 hover:bg-purple-600"
+>
+  Book Ticket
+</button>
+
             </div>
           </div>
         </div>
