@@ -7,6 +7,10 @@ import Comment from "./models/comment.model.js";
 import Show from "./models/Show.js";
 import Theatre from "./models/Theatre.js";
 import Booking from "./models/Booking.js";
+import theatreRoutes from "./routes/theatre.routes.js";
+import showRoutes from "./routes/show.routes.js"; // missing or typo
+import locationRoutes from "./routes/location.routes.js";
+
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -48,6 +52,10 @@ app.use(
     credentials: true,
   })
 );
+app.use("/api/theatres", theatreRoutes);
+app.use("/api/shows", showRoutes);
+app.use("/api/theatres", theatreRoutes);
+app.use("/api/location", locationRoutes);
 
 /* ---------------- BASE ---------------- */
 app.get("/", (req, res) => {
