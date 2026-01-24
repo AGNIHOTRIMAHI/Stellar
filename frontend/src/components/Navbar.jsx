@@ -152,6 +152,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+
 const Navbar = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();

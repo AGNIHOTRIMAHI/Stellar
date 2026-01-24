@@ -1,161 +1,238 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const rows = ["A", "B", "C", "D", "E"];
-const cols = [1, 2, 3, 4, 5, 6, 7, 8];
-const SEAT_PRICE = 200;
 
 const BookingPage = () => {
   const { movieId } = useParams();
   const navigate = useNavigate();
 
+  // location
+  const [cityMode, setCityMode] = useState("auto");
   const [city, setCity] = useState("");
-  const [theater, setTheater] = useState("");
-  const [time, setTime] = useState("");
+
+  // booking states
+  const [theatres, setTheatres] = useState([]);
+  const [theatre, setTheatre] = useState("");
+  const [date, setDate] = useState("");
+
+  const [shows, setShows] = useState([]);
+  const [showId, setShowId] = useState("");
+
+  const [seats, setSeats] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
 
-  const toggleSeat = (seat) => {
+  /* =========================
+     AUTO LOCATION
+     ========================= */
+  useEffect(() => {
+    if (cityMode !== "auto") return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `http://localhost:5000/api/location/city?lat=${latitude}&lng=${longitude}`
+          );
+          const data = await res.json();
+          setCity(data.city);
+        } catch {
+          setCityMode("manual");
+        }
+      },
+      () => setCityMode("manual")
+    );
+  }, [cityMode]);
+
+  /* =========================
+     FETCH THEATRES
+     ========================= */
+  useEffect(() => {
+    if (!city) return;
+
+    fetch(`http://localhost:5000/api/theatres?city=${city}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setTheatres(data);
+        setTheatre("");
+        setShows([]);
+        setShowId("");
+        setSeats([]);
+        setSelectedSeats([]);
+      });
+  }, [city]);
+
+  /* =========================
+     FETCH SHOWS
+     ========================= */
+  useEffect(() => {
+    if (!movieId || !theatre || !date) return;
+
+    fetch(
+      `http://localhost:5000/api/shows?movieId=${movieId}&theatreId=${theatre}&date=${date}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setShows(Array.isArray(data) ? data : []);
+        setShowId("");
+        setSeats([]);
+        setSelectedSeats([]);
+      });
+  }, [movieId, theatre, date]);
+
+  /* =========================
+     FETCH SEATS
+     ========================= */
+  useEffect(() => {
+    if (!showId) return;
+
+    fetch(`http://localhost:5000/api/shows/${showId}/seats`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSeats(Array.isArray(data) ? data : []);
+        setSelectedSeats([]);
+      });
+  }, [showId]);
+
+  const toggleSeat = (seatNumber) => {
     setSelectedSeats((prev) =>
-      prev.includes(seat)
-        ? prev.filter((s) => s !== seat)
-        : [...prev, seat]
+      prev.includes(seatNumber)
+        ? prev.filter((s) => s !== seatNumber)
+        : [...prev, seatNumber]
     );
   };
 
-  const totalPrice = selectedSeats.length * SEAT_PRICE;
-
-  const handleConfirm = () => {
-    if (!city || !theater || !time || selectedSeats.length === 0) {
-      alert("Please select city, theatre, time and seats");
-      return;
-    }
-
-    navigate("/payment", {
-      state: {
-        movieId,
-        city,
-        theater,
-        time,
-        seats: selectedSeats,
-        totalPrice,
-      },
-    });
-  };
-
+  /* =========================
+     UI
+     ========================= */
   return (
-    <div className="min-h-screen bg-[#181818] flex items-center justify-center">
-  
-    <div className="min-h-screen bg-[#181818] text-white p-8">
-      <h1 className="text-3xl font-bold mb-6 text-purple-400">
-        Book Tickets
-      </h1>
+    <div className="min-h-screen bg-[#181818] flex items-center justify-center text-white p-8">
+      <div className="w-full max-w-3xl bg-[#232323] p-6 rounded-xl space-y-5">
 
-      <div className="max-w-3xl space-y-6 bg-[#232323] p-6 rounded-lg border border-purple-500/20">
+        <h1 className="text-3xl font-bold text-purple-400">
+          Book Tickets
+        </h1>
+
+        {/* LOCATION MODE */}
+        <select
+          value={cityMode}
+          onChange={(e) => {
+            setCityMode(e.target.value);
+            setCity("");
+          }}
+          className="w-full p-3 bg-black border border-gray-600 rounded"
+        >
+          <option value="auto">Use Current Location</option>
+          <option value="manual">Search City Manually</option>
+        </select>
 
         {/* CITY */}
-        <select
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="w-full p-3 bg-[#181818] rounded border border-gray-700 focus:border-purple-500"
-        >
-          <option value="" disabled hidden>Select City</option>
-          <option value="Delhi">Delhi</option>
-          <option value="Mumbai">Mumbai</option>
-          <option value="Bangalore">Bangalore</option>
-        </select>
+        {cityMode === "manual" ? (
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-full p-3 bg-black border border-gray-600 rounded"
+          >
+            <option value="">Select City</option>
+            <option value="Prayagraj">Prayagraj</option>
+            <option value="Delhi">Delhi</option>
+          </select>
+        ) : (
+          <div className="p-3 bg-black border border-gray-600 rounded">
+            {city || "Detecting location..."}
+          </div>
+        )}
 
         {/* THEATRE */}
         <select
-          value={theater}
-          onChange={(e) => setTheater(e.target.value)}
-          disabled={!city}
-          className="w-full p-3 bg-[#181818] rounded border border-gray-700 focus:border-purple-500 disabled:opacity-50"
+          value={theatre}
+          onChange={(e) => setTheatre(e.target.value)}
+          disabled={!theatres.length}
+          className="w-full p-3 bg-black border border-gray-600 rounded"
         >
-          <option value="" disabled hidden>Select Theatre</option>
-          <option value="PVR">PVR Cinemas</option>
-          <option value="INOX">INOX</option>
-          <option value="Cinepolis">Cinepolis</option>
+          <option value="">Select Theatre</option>
+          {theatres.map((t) => (
+            <option key={t._id} value={t._id}>
+              {t.name}
+            </option>
+          ))}
         </select>
 
-        {/* TIME */}
+        {/* DATE */}
+        <input
+          type="date"
+          value={date}
+          min={new Date().toISOString().split("T")[0]}
+          onChange={(e) => setDate(e.target.value)}
+          onFocus={(e) => e.target.showPicker && e.target.showPicker()}
+          className="w-full p-3 bg-black text-white border border-gray-600 rounded
+                     focus:border-purple-500 focus:ring-1 focus:ring-purple-500
+                     [&::-webkit-calendar-picker-indicator]:invert"
+        />
+
+        {/* SHOW */}
         <select
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          disabled={!theater}
-          className="w-full p-3 bg-[#181818] rounded border border-gray-700 focus:border-purple-500 disabled:opacity-50"
+          value={showId}
+          onChange={(e) => setShowId(e.target.value)}
+          disabled={!shows.length}
+          className="w-full p-3 bg-black border border-gray-600 rounded"
         >
-          <option value="" disabled hidden>Select Show Time</option>
-          <option value="10:00 AM">10:00 AM</option>
-          <option value="1:30 PM">1:30 PM</option>
-          <option value="6:00 PM">6:00 PM</option>
-          <option value="9:30 PM">9:30 PM</option>
+          <option value="">Select Show</option>
+          {shows.map((s) => (
+            <option key={s._id} value={s._id}>
+              {s.time}
+            </option>
+          ))}
         </select>
 
         {/* SEAT MATRIX */}
-        {time && (
+        {seats.length > 0 && (
           <>
-            <h2 className="text-xl font-semibold mt-4 text-purple-300">
+            <h2 className="text-lg font-semibold text-purple-300">
               Select Seats
             </h2>
 
-            <div className="space-y-2">
-              {rows.map((row) => (
-                <div key={row} className="flex gap-2 justify-center">
-                  {cols.map((col) => {
-                    const seat = `${row}${col}`;
-                    const selected = selectedSeats.includes(seat);
+            <div className="grid grid-cols-8 gap-2 justify-center">
+              {seats.map((seat) => {
+                const selected = selectedSeats.includes(seat.seatNumber);
 
-                    return (
-                      <button
-                        key={seat}
-                        onClick={() => toggleSeat(seat)}
-                        className={`w-10 h-10 rounded text-sm font-semibold
-                          ${
-                            selected
-                              ? "bg-purple-600"
-                              : "bg-[#181818] border border-gray-600 hover:border-purple-500"
-                          }`}
-                      >
-                        {seat}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+                return (
+                  <button
+                    key={seat.seatNumber}
+                    disabled={seat.isBooked}
+                    onClick={() => toggleSeat(seat.seatNumber)}
+                    className={`w-10 h-10 rounded text-sm font-semibold
+                      ${
+                        seat.isBooked
+                          ? "bg-gray-700 cursor-not-allowed"
+                          : selected
+                          ? "bg-purple-600"
+                          : "bg-black border border-gray-600 hover:border-purple-500"
+                      }`}
+                  >
+                    {seat.seatNumber}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
 
-        {/* SUMMARY */}
-        {selectedSeats.length > 0 && (
-          <div className="mt-4 text-gray-300">
-            <p>
-              Seats:{" "}
-              <span className="text-white font-semibold">
-                {selectedSeats.join(", ")}
-              </span>
-            </p>
-            <p>
-              Total:{" "}
-              <span className="text-purple-400 font-bold">
-                ₹{totalPrice}
-              </span>
-            </p>
-          </div>
-        )}
-
         {/* CONFIRM */}
         <button
-          onClick={handleConfirm}
-          className="w-full bg-purple-600 hover:bg-purple-700 py-3 rounded-lg text-lg font-semibold transition"
+          disabled={!selectedSeats.length}
+          onClick={() =>
+            navigate("/payment", {
+              state: { movieId, showId, selectedSeats },
+            })
+          }
+          className="w-full py-3 bg-purple-600 rounded text-lg font-semibold
+                     disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Confirm & Pay
         </button>
+
       </div>
     </div>
-    </div>
-
-
   );
 };
 
