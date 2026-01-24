@@ -10,7 +10,7 @@ const Moviepage = () => {
   const [movie, setMovie] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [trailerKey, setTrailerKey] = useState(null);
-
+  
   // Trailer
   const [showTrailer, setShowTrailer] = useState(false);
   const trailerRef = useRef(null);
@@ -47,6 +47,8 @@ const Moviepage = () => {
       console.error(err);
     }
   };
+  
+
 
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
@@ -205,6 +207,13 @@ Emotion, pacing, vibe only.
 
   setIsSummarizing(false);
 };
+if (!movie) {
+  return (
+    <div className="min-h-screen bg-[#181818] flex items-center justify-center text-purple-400 text-lg">
+      Loading movie details...
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#181818] text-white">
@@ -217,7 +226,7 @@ Emotion, pacing, vibe only.
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#181818] via-transparent to-transparent" />
 
         <div className="relative z-10 flex items-end p-8 gap-8">
           <img
@@ -248,20 +257,23 @@ Emotion, pacing, vibe only.
 
             <p className="max-w-2xl mt-4 text-gray-200">{movie.overview}</p>
 
-            <div className="flex gap-3 mt-5 flex-wrap">
+            <div className="flex gap-3 mt-5 flex-wrap overflow-visible">
               <button
                 onClick={toggleTrailer}
+                
                 disabled={!trailerKey}
-                className={`flex items-center px-4 py-3 rounded-full text-sm ${
-                  trailerKey
-                    ? "bg-purple-700 hover:bg-purple-600"
-                    : "bg-gray-700 opacity-70 cursor-not-allowed"
-                }`}
+                className={`group flex items-center px-5 py-3 rounded-full font-medium
+  transition-transform duration-300 ease-out
+  ${
+    trailerKey
+      ? "bg-purple-700 hover:bg-purple-600 hover:-translate-y-1 hover:shadow-2xl"
+      : "bg-gray-700 opacity-60 cursor-not-allowed"
+  }`}
               >
                 {showTrailer ? (
-                  <X className="mr-2 w-5 h-5" />
+                  <X className="mr-2 w-5 h-5 transition-transform group-hover:rotate-90" />
                 ) : (
-                  <Play className="mr-2 w-5 h-5" />
+                  <Play className="mr-2 w-5 h-5 transition-transform group-hover:scale-110" />
                 )}
                 Watch Trailer
               </button>
@@ -269,13 +281,19 @@ Emotion, pacing, vibe only.
               <button
                 onClick={summarizeTrailer}
                 disabled={isSummarizing}
-                className={`px-4 py-3 rounded-full text-sm ${
-                  isSummarizing
-                    ? "bg-gray-600"
-                    : "bg-purple-700 hover:bg-purple-600"
-                }`}
+                className={`group relative px-5 py-3 rounded-full text-sm font-semibold
+  transition-all duration-300 ease-out
+  ${
+    isSummarizing
+      ? "bg-gray-600 cursor-wait opacity-80"
+      : "bg-linear-to-r from-purple-600 to-pink-900 hover:from-purple-700 hover:to-pink-900 hover:-translate-y-1 hover:shadow-xl"
+  }`}
               >
-                {isSummarizing ? "Analyzing..." : "AI Trailer Insight"}
+               <span className="absolute inset-0 rounded-full bg-purple-500 opacity-0 blur-md group-hover:opacity-30 transition" />
+                <span className="relative z-10">
+                        {isSummarizing ? "Analyzing..." : "AI Trailer Insight✨"}
+                </span>
+                
               </button>
 
               {/* ✅ COMMENTS BUTTON */}
@@ -288,9 +306,18 @@ Emotion, pacing, vibe only.
 
               <button
   onClick={() => navigate(`/book/${id}`)}
-  className="px-4 py-3 rounded-full text-sm bg-purple-700 hover:bg-purple-600"
+  className="group relative px-6 py-3 rounded-full text-sm font-bold text-white
+  bg-linear-to-r from-purple-900 via-purple-500 to-indigo-900
+  transition-all duration-300 ease-out
+  hover:-translate-y-1 hover:scale-105 hover:shadow-2xl"
 >
-  Book Ticket
+   {/* glow ring */}
+  <span className="absolute inset-0 rounded-full bg-purple-500 opacity-0 blur-md group-hover:opacity-40 transition" />
+
+  <span className="relative z-10 flex items-center gap-2">
+          Book Ticket
+  </span>
+  
 </button>
 
             </div>
