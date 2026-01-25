@@ -1125,8 +1125,8 @@ const BookingPage = () => {
 
   /* ================= UI ================= */
   return (
-    <div className="min-h-screen bg-[#181818] flex items-center justify-center text-white p-8">
-      <div className="w-full max-w-3xl bg-[#232323] p-6 rounded-xl space-y-6">
+    <div className="min-h-screen bg-[#181818] flex items-center justify-center text-white transition-all duration-300 ease-in-out">
+      <div className=" w-full max-w-3xl bg-[#232323] p-6 rounded-xl space-y-6">
         <h1 className="text-3xl font-bold text-purple-400">Book Tickets</h1>
          {/* DEBUG INFO - Add this after <h1> */}
 
@@ -1136,7 +1136,11 @@ const BookingPage = () => {
             <button
               onClick={detectLocation}
               disabled={locating}
-              className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-purple-600
+             hover:bg-purple-500 active:scale-95
+             transition-all duration-200
+             flex items-center justify-center
+             shadow-lg disabled:opacity-50"
             >
               <LocateFixed />
             </button>
@@ -1157,14 +1161,72 @@ const BookingPage = () => {
           </button>
 
           {cityMode === "manual" && (
-            <input
-              value={city}
-              onChange={(e) => handleCitySearch(e.target.value)}
-              className="w-full p-3 bg-black border border-gray-600 rounded"
-              placeholder="Search city"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search city"
+                value={city}
+                onChange={(e) => handleCitySearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (!suggestions.length) return;
+
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setActiveIndex((i) =>
+                      i < suggestions.length - 1 ? i + 1 : 0
+                    );
+                  }
+
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setActiveIndex((i) =>
+                      i > 0 ? i - 1 : suggestions.length - 1
+                    );
+                  }
+
+                  if (e.key === "Enter" && activeIndex >= 0) {
+                    e.preventDefault();
+                    setCity(
+                      suggestions[activeIndex].structured_formatting.main_text
+                    );
+                    setSuggestions([]);
+                  }
+
+                  if (e.key === "Escape") setSuggestions([]);
+                }}
+                className="w-full p-3 bg-black border border-gray-600 rounded"
+              />
+
+              {suggestions.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full bg-[#1f1f1f]
+                                border border-gray-700 rounded-lg shadow-xl
+                                max-h-60 overflow-auto">
+                  {suggestions.map((s, index) => (
+                    <button
+                      key={s.place_id}
+                      onClick={() => {
+                        setCity(s.structured_formatting.main_text);
+                        setSuggestions([]);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm
+                        ${index === activeIndex
+                          ? "bg-purple-600/30"
+                          : "hover:bg-purple-600/20"}`}
+                    >
+                      <p className="font-medium">
+                        {s.structured_formatting.main_text}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {s.structured_formatting.secondary_text}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
+
 
         {/* THEATRE */}
         <select
@@ -1191,7 +1253,8 @@ const BookingPage = () => {
         </button>
 
         {showCalendar && (
-          <div className="bg-[#1a1a1a] p-4 rounded-lg">
+          <div className="bg-[#1a1a1a] p-4 rounded-lg
+                  animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between mb-3">
               <button
                 onClick={() =>
@@ -1257,12 +1320,13 @@ const BookingPage = () => {
         <button
           key={s._id}
           onClick={() => setShowId(s._id)}
-          className={`px-4 py-2 rounded border
-            ${
-              showId === s._id
-                ? "bg-purple-600 border-purple-600"
-                : "bg-black border-gray-600 hover:border-purple-400"
-            }`}
+          className={`px-4 py-2 rounded-full border text-sm font-medium
+    transition-all duration-200
+    ${
+      showId === s._id
+        ? "bg-purple-600 border-purple-600 shadow-md"
+        : "bg-black border-gray-600 hover:border-purple-400 hover:shadow-sm"
+    }`}
         >
           {s.time}
         </button>
@@ -1280,13 +1344,15 @@ const BookingPage = () => {
                 key={seat.seatNumber}
                 disabled={seat.isBooked}
                 onClick={() => toggleSeat(seat.seatNumber)}
-                className={`w-10 h-10 rounded ${
-                  seat.isBooked
-                    ? "bg-gray-700"
-                    : selectedSeats.includes(seat.seatNumber)
-                    ? "bg-purple-600"
-                    : "bg-black border border-gray-600"
-                }`}
+                className={`w-10 h-10 rounded-md text-xs font-semibold
+    transition-all duration-150
+    ${
+      seat.isBooked
+        ? "bg-gray-700 cursor-not-allowed"
+        : selectedSeats.includes(seat.seatNumber)
+        ? "bg-purple-600 scale-105 shadow-md"
+        : "bg-black border border-gray-600 hover:border-purple-400 hover:scale-105"
+    }`}
               >
                 {seat.seatNumber}
               </button>
@@ -1302,7 +1368,11 @@ const BookingPage = () => {
               state: { movieId, showId, selectedSeats },
             })
           }
-          className="w-full py-3 bg-purple-600 rounded disabled:opacity-50"
+          className="w-full py-3 rounded-lg text-lg font-semibold
+             bg-linear-to-r from-purple-600 to-purple-500
+             hover:from-purple-500 hover:to-purple-400
+             transition-all duration-200
+             disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Confirm & Pay
         </button>
