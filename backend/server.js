@@ -53,7 +53,7 @@ app.use(
   })
 );
 app.use("/api/theatres", theatreRoutes);
-app.use("/api/", showRoutes);
+app.use("/api/shows", showRoutes);
 app.use("/api/theatres", theatreRoutes);
 app.use("/api/location", locationRoutes);
 

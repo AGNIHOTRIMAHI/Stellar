@@ -1057,7 +1057,7 @@ const BookingPage = () => {
   }, [city]);
 
   /* ================= FETCH SHOWS ================= */
-  useEffect(() => {
+  /*useEffect(() => {
     if (!movieId || !theatre || !date) return;
 
     fetch(
@@ -1070,7 +1070,38 @@ const BookingPage = () => {
         setSeats([]);
         setSelectedSeats([]);
       });
-  }, [movieId, theatre, date]);
+  }, [movieId, theatre, date]);*/
+  useEffect(() => {
+  if (!movieId || !theatre || !date) return;
+
+  console.log("📡 Fetching shows with:", {
+    movieId,
+    theatre,
+    date,
+  });
+
+  fetch(
+    `http://localhost:5000/api/shows?movieId=${movieId}&theatreId=${theatre}&date=${date}`
+  )
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("Failed to fetch shows");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      console.log("🎬 SHOW API RESPONSE:", data);
+      setShows(Array.isArray(data) ? data : []);
+    })
+    .catch((err) => {
+      console.error("❌ Show fetch error:", err);
+      setShows([]);
+    });
+}, [movieId, theatre, date]);
+
+  useEffect(() => {
+  console.log("SHOWS STATE", shows);
+}, [shows]);
 
   /* ================= FETCH SEATS ================= */
   useEffect(() => {
@@ -1217,19 +1248,29 @@ const BookingPage = () => {
         )}
 
         {/* SHOW */}
-        <select
-          value={showId}
-          onChange={(e) => setShowId(e.target.value)}
-          disabled={!shows.length}
-          className="w-full p-3 bg-black border border-gray-600 rounded"
+        {/* SHOW TIMES */}
+{shows.length > 0 && (
+  <div>
+    <h3 className="text-sm text-gray-400 mb-2">Select Show Time</h3>
+    <div className="flex flex-wrap gap-3">
+      {shows.map((s) => (
+        <button
+          key={s._id}
+          onClick={() => setShowId(s._id)}
+          className={`px-4 py-2 rounded border
+            ${
+              showId === s._id
+                ? "bg-purple-600 border-purple-600"
+                : "bg-black border-gray-600 hover:border-purple-400"
+            }`}
         >
-          <option value="">Select Show</option>
-          {shows.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.time}
-            </option>
-          ))}
-        </select>
+          {s.time}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
+
 
         {/* SEATS */}
         {seats.length > 0 && (

@@ -125,7 +125,9 @@ async function seedShows() {
     }
 
     // Your theatre ID
-    const theatreId = "6974af56eefb527cb51aba40";
+    //const theatreId = "6974af56eefb527cb51aba40";
+    const theatreId = "697512a45014b48749523cc0"; // ✅ MUST MATCH theatres collection
+
     const movieId = "1306368"; // Your movie ID
 
     const times = ["10:00 AM", "1:00 PM", "4:00 PM", "7:00 PM", "10:00 PM"];
