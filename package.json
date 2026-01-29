@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "leaflet": "^1.9.4",
-    "react-day-picker": "^9.13.0",
-    "react-leaflet": "^5.0.0"
-  }
-}
