@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { connectToDB } from "./config/db.js";
+import authBloomFilter from "./services/authBloomFilter.service.js";
 
 // Import routes
 import authRouter from "./routes/auth.routes.js";
@@ -13,7 +14,6 @@ import locationRoutes from "./routes/location.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
-
 
 dotenv.config();
 
@@ -51,11 +51,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Something went wrong!" });
 });
 
-app.use('/api',paymentRouter);
-
-
 /* ---------------- START SERVER ---------------- */
-app.listen(PORT, () => {
-  connectToDB();
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    // Connect to database first
+    await connectToDB();
+    
+    // ✨ Initialize bloom filters on startup
+    console.log("🔄 Initializing bloom filters...");
+    await authBloomFilter.initialize();
+    console.log("✅ Bloom filters ready!");
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
