@@ -12,6 +12,8 @@ import showRoutes from "./routes/show.routes.js";
 import locationRoutes from "./routes/location.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import paymentRouter from "./routes/payment.routes.js";
+
 
 dotenv.config();
 
@@ -41,12 +43,16 @@ app.use("/api/theatres", theatreRoutes);
 app.use("/api/shows", showRoutes);
 app.use("/api/location", locationRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payment", paymentRouter);
 
 /* ---------------- ERROR HANDLING ---------------- */
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: "Something went wrong!" });
 });
+
+app.use('/api',paymentRouter);
+
 
 /* ---------------- START SERVER ---------------- */
 app.listen(PORT, () => {
