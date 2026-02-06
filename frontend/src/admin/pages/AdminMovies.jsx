@@ -1,13 +1,35 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { adminMoviesStore } from "../store/adminMoviesStore";
 
 export default function AdminMovies() {
   const navigate = useNavigate();
-  const [refresh, setRefresh] = useState(0);
+  const [movies, setMovies] = useState([]);
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const movies = useMemo(() => adminMoviesStore.getAll(), [refresh]);
+  // Fetch all movies (admin)
+  async function fetchMovies() {
+    try {
+      const res = await fetch("http://localhost:5000/api/movies/admin", {
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch movies");
+      }
+
+      const data = await res.json();
+      setMovies(data);
+    } catch (err) {
+      console.error("Error loading movies:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchMovies();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -20,20 +42,54 @@ export default function AdminMovies() {
     );
   }, [movies, query]);
 
-  function forceRefresh() {
-    setRefresh((x) => x + 1);
+  // Toggle publish/unpublish
+ async function togglePublish(id, value) {
+  try {
+    const res = await fetch(`http://localhost:5000/api/movies/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublished: value }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to update publish status");
+    }
+
+    // refresh list
+    fetchMovies();
+  } catch (err) {
+    alert("Could not update movie");
+  }
+}
+
+
+  // Delete movie
+  async function handleDelete(id, title) {
+  const ok = confirm(`Delete "${title}"?`);
+  if (!ok) return;
+
+  const res = await fetch(
+    `http://localhost:5000/api/movies/${id}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.message || "Delete failed");
+    return;
   }
 
-  function togglePublish(id, value) {
-    adminMoviesStore.update(id, { isPublished: value });
-    forceRefresh();
-  }
+  alert("Movie deleted");
+  forceRefresh();
+}
 
-  function handleDelete(id, title) {
-    const ok = confirm(`Delete "${title}"? This cannot be undone.`);
-    if (!ok) return;
-    adminMoviesStore.remove(id);
-    forceRefresh();
+  if (loading) {
+    return <div className="text-gray-400">Loading movies...</div>;
   }
 
   return (
@@ -89,7 +145,9 @@ export default function AdminMovies() {
                       <input
                         type="checkbox"
                         checked={!!m.isPublished}
-                        onChange={(e) => togglePublish(m._id, e.target.checked)}
+                        onChange={(e) =>
+                          togglePublish(m._id, e.target.checked)
+                        }
                       />
                       <span className="text-gray-300">
                         {m.isPublished ? "Yes" : "No"}
@@ -100,7 +158,9 @@ export default function AdminMovies() {
                     <div className="flex gap-2">
                       <button
                         className="rounded-lg border border-gray-700 px-3 py-1 hover:bg-gray-800"
-                        onClick={() => navigate(`/admin/movies/${m._id}/edit`)}
+                        onClick={() =>
+                          navigate(`/admin/movies/${m._id}/edit`)
+                        }
                       >
                         Edit
                       </button>

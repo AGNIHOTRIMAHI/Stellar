@@ -13,36 +13,50 @@ export default function MovieForm({
     description: "",
     genre: "",
     year: "",
-    posterUrl: "",
+    poster: null,        // 🔴 file, not URL
     videoUrl: "",
     isPublished: false,
   });
 
   useEffect(() => {
     if (initialValues) {
-      setForm((prev) => ({ ...prev, ...initialValues }));
+      setForm((prev) => ({
+        ...prev,
+        ...initialValues,
+        poster: null, // never preload file input
+      }));
     }
   }, [initialValues]);
 
   function updateField(key, value) {
-    setForm((p) => ({ ...p, [key]: value }));
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleSubmit(e) {
     e.preventDefault();
+
     if (!form.title.trim()) return alert("Title is required");
     if (!form.videoUrl.trim()) return alert("Video URL is required");
-    onSubmit({
-      ...form,
-      title: form.title.trim(),
-      genre: form.genre.trim(),
-      posterUrl: form.posterUrl.trim(),
-      videoUrl: form.videoUrl.trim(),
-    });
+
+    const formData = new FormData();
+
+    formData.append("title", form.title.trim());
+    formData.append("description", form.description);
+    formData.append("genre", form.genre.trim());
+    formData.append("year", form.year);
+    formData.append("videoUrl", form.videoUrl.trim());
+    formData.append("isPublished", form.isPublished);
+
+    if (form.poster) {
+      formData.append("poster", form.poster); // 🔥 Cloudinary upload
+    }
+
+    onSubmit(formData);
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* TITLE */}
       <div>
         <label className="text-xs text-gray-400">Title *</label>
         <input
@@ -53,6 +67,7 @@ export default function MovieForm({
         />
       </div>
 
+      {/* DESCRIPTION */}
       <div>
         <label className="text-xs text-gray-400">Description</label>
         <textarea
@@ -63,6 +78,7 @@ export default function MovieForm({
         />
       </div>
 
+      {/* GENRE + YEAR */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="text-xs text-gray-400">Genre</label>
@@ -86,37 +102,47 @@ export default function MovieForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
-          <label className="text-xs text-gray-400">Poster URL</label>
-          <input
-            className={inputClass}
-            value={form.posterUrl}
-            onChange={(e) => updateField("posterUrl", e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400">Video URL *</label>
-          <input
-            className={inputClass}
-            value={form.videoUrl}
-            onChange={(e) => updateField("videoUrl", e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
+      {/* POSTER IMAGE UPLOAD */}
+      <div>
+        <label className="text-xs text-gray-400">
+          Poster Image *
+        </label>
+        <input
+          type="file"
+          accept="image/*"
+          className={inputClass}
+          onChange={(e) =>
+            updateField("poster", e.target.files[0])
+          }
+        />
       </div>
 
+      {/* VIDEO URL (TEMPORARY – later Cloudinary video) */}
+      <div>
+        <label className="text-xs text-gray-400">
+          Video URL *
+        </label>
+        <input
+          className={inputClass}
+          value={form.videoUrl}
+          onChange={(e) => updateField("videoUrl", e.target.value)}
+          placeholder="https://..."
+        />
+      </div>
+
+      {/* PUBLISH */}
       <label className="flex items-center gap-2 text-sm text-gray-300">
         <input
           type="checkbox"
           checked={form.isPublished}
-          onChange={(e) => updateField("isPublished", e.target.checked)}
+          onChange={(e) =>
+            updateField("isPublished", e.target.checked)
+          }
         />
         Publish now
       </label>
 
+      {/* SUBMIT */}
       <button className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200">
         {submitLabel}
       </button>

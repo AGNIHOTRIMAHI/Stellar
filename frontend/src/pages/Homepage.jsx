@@ -1,19 +1,20 @@
-import React from 'react'
-import Hero from '../components/Hero'
-import CardList from '../components/CardList'
-import Footer from '../components/Footer'
+import Hero from "../components/Hero";
+import CardList from "../components/CardList";
+import RecentlyUploaded from "../components/RecentlyUploaded";
+import Footer from "../components/Footer";
 
 const Homepage = () => {
   return (
-    <div className='p-5'>
+    <div className="p-5">
       <Hero />
-      <CardList title="Now Playing" category="now_playing"/>
-      <CardList title="Top Rated" category="top_rated"/>
-      <CardList title="Popular" category="popular"/>
-      <CardList title="Upcoming" category="upcoming"/>
+      <RecentlyUploaded />
+      <CardList title="Now Playing" category="now_playing" />
+      <CardList title="Top Rated" category="top_rated" />
+      <CardList title="Popular" category="popular" />
+      <CardList title="Upcoming" category="upcoming" />
       <Footer />
     </div>
-  )
-}
+  );
+};
 
-export default Homepage
+export default Homepage;

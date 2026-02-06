@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { adminMoviesStore } from "../store/adminMoviesStore";
 
 function StatCard({ label, value }) {
   return (
@@ -14,18 +13,31 @@ function StatCard({ label, value }) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [refresh, setRefresh] = useState(0);
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load movies from localStorage store
-  const movies = useMemo(() => adminMoviesStore.getAll(), [refresh]);
-
-  // Refresh if localStorage changes (e.g., another tab)
+  // Fetch movies from backend (ADMIN)
   useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === "admin_movies_v1") setRefresh((x) => x + 1);
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    async function fetchMovies() {
+      try {
+        const res = await fetch("http://localhost:5000/api/movies/admin", {
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch movies");
+        }
+
+        const data = await res.json();
+        setMovies(data);
+      } catch (err) {
+        console.error("Error loading movies:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMovies();
   }, []);
 
   const filtered = useMemo(() => {
@@ -43,6 +55,10 @@ export default function AdminDashboard() {
   const total = movies.length;
   const published = movies.filter((m) => m.isPublished).length;
   const drafts = total - published;
+
+  if (loading) {
+    return <div className="text-gray-400">Loading movies...</div>;
+  }
 
   return (
     <div className="space-y-6">
