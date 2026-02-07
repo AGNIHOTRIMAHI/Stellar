@@ -13,8 +13,8 @@ export default function MovieForm({
     description: "",
     genre: "",
     year: "",
-    poster: null,        // 🔴 file, not URL
-    videoUrl: "",
+    poster: null, // image file
+    video: null,  // 🎬 video file
     isPublished: false,
   });
 
@@ -23,7 +23,8 @@ export default function MovieForm({
       setForm((prev) => ({
         ...prev,
         ...initialValues,
-        poster: null, // never preload file input
+        poster: null,
+        video: null,
       }));
     }
   }, [initialValues]);
@@ -36,20 +37,21 @@ export default function MovieForm({
     e.preventDefault();
 
     if (!form.title.trim()) return alert("Title is required");
-    if (!form.videoUrl.trim()) return alert("Video URL is required");
+    if (!form.poster) return alert("Poster image is required");
+    if (!form.video) return alert("Movie video is required");
 
+    // 🔥 THIS is the FormData (yes, this is it)
     const formData = new FormData();
 
     formData.append("title", form.title.trim());
     formData.append("description", form.description);
     formData.append("genre", form.genre.trim());
     formData.append("year", form.year);
-    formData.append("videoUrl", form.videoUrl.trim());
     formData.append("isPublished", form.isPublished);
 
-    if (form.poster) {
-      formData.append("poster", form.poster); // 🔥 Cloudinary upload
-    }
+    // files (names MUST match backend)
+    formData.append("poster", form.poster);
+    formData.append("video", form.video);
 
     onSubmit(formData);
   }
@@ -102,31 +104,25 @@ export default function MovieForm({
         </div>
       </div>
 
-      {/* POSTER IMAGE UPLOAD */}
+      {/* POSTER IMAGE */}
       <div>
-        <label className="text-xs text-gray-400">
-          Poster Image *
-        </label>
+        <label className="text-xs text-gray-400">Poster Image *</label>
         <input
           type="file"
           accept="image/*"
           className={inputClass}
-          onChange={(e) =>
-            updateField("poster", e.target.files[0])
-          }
+          onChange={(e) => updateField("poster", e.target.files[0])}
         />
       </div>
 
-      {/* VIDEO URL (TEMPORARY – later Cloudinary video) */}
+      {/* MOVIE VIDEO */}
       <div>
-        <label className="text-xs text-gray-400">
-          Video URL *
-        </label>
+        <label className="text-xs text-gray-400">Movie Video *</label>
         <input
+          type="file"
+          accept="video/*"
           className={inputClass}
-          value={form.videoUrl}
-          onChange={(e) => updateField("videoUrl", e.target.value)}
-          placeholder="https://..."
+          onChange={(e) => updateField("video", e.target.files[0])}
         />
       </div>
 
@@ -135,9 +131,7 @@ export default function MovieForm({
         <input
           type="checkbox"
           checked={form.isPublished}
-          onChange={(e) =>
-            updateField("isPublished", e.target.checked)
-          }
+          onChange={(e) => updateField("isPublished", e.target.checked)}
         />
         Publish now
       </label>

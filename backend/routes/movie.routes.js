@@ -1,7 +1,7 @@
 import express from "express";
 import protect from "../middleware/auth.js";
 import adminOnly from "../middleware/adminOnly.js";
-import uploadPoster from "../middleware/uploadPoster.js";
+import uploadMovieAssets from "../middleware/uploadMovieAssets.js";
 
 import {
   createMovie,
@@ -14,38 +14,32 @@ import {
 
 const router = express.Router();
 
-/* ================= PUBLIC ================= */
-
-// 🔥 MUST be first
 router.get("/published", getPublishedMovies);
 
-// view single movie (watch page)
-router.get("/:id", getMovieById);
+router.get("/admin", protect, adminOnly, getAdminMovies);
 
-/* ================= ADMIN ================= */
-
-// create movie
+// CREATE movie (poster + video)
 router.post(
   "/",
   protect,
   adminOnly,
-  uploadPoster.single("poster"),
+  uploadMovieAssets.fields([
+    { name: "poster", maxCount: 1 },
+    { name: "video", maxCount: 1 },
+  ]),
   createMovie
 );
 
-// admin list
-router.get("/admin", protect, adminOnly, getAdminMovies);
-
-// admin edit
+// UPDATE movie (no file upload for now)
 router.put(
   "/:id",
   protect,
   adminOnly,
-  uploadPoster.single("poster"),
   updateMovie
 );
 
-// admin delete
 router.delete("/:id", protect, adminOnly, deleteMovie);
+
+router.get("/:id", getMovieById);
 
 export default router;

@@ -3,10 +3,10 @@ import Movie from "../models/Movie.js";
 /* ================= ADMIN: CREATE MOVIE ================= */
 export const createMovie = async (req, res) => {
   try {
-    // 🔍 DEBUG LOGS (keep for now)
+    // 🔍 DEBUG LOGS (keep while testing)
     console.log("REQ.USER =>", req.user);
     console.log("REQ.BODY =>", req.body);
-    console.log("REQ.FILE =>", req.file);
+    console.log("REQ.FILES =>", req.files);
 
     if (!req.user) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -17,29 +17,32 @@ export const createMovie = async (req, res) => {
       description = "",
       genre = "",
       year = "",
-      videoUrl,
       isPublished = false,
     } = req.body;
 
-    if (!title || !videoUrl) {
-      return res
-        .status(400)
-        .json({ message: "Title and video URL are required" });
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: "Title is required" });
     }
 
-    if (!req.file) {
-      return res
-        .status(400)
-        .json({ message: "Poster image is required" });
+    // ⬇️ IMPORTANT CHANGE (fields → req.files)
+    const posterFile = req.files?.poster?.[0];
+    const videoFile = req.files?.video?.[0];
+
+    if (!posterFile) {
+      return res.status(400).json({ message: "Poster image is required" });
+    }
+
+    if (!videoFile) {
+      return res.status(400).json({ message: "Video file is required" });
     }
 
     const movie = await Movie.create({
-      title,
+      title: title.trim(),
       description,
       genre,
       year,
-      videoUrl,
-      posterUrl: req.file.path, // ✅ Cloudinary URL
+      posterUrl: posterFile.path, // ✅ Cloudinary IMAGE URL
+      videoUrl: videoFile.path,   // ✅ Cloudinary VIDEO URL
       isPublished: isPublished === "true" || isPublished === true,
       uploadedBy: req.user._id,
     });
@@ -52,7 +55,6 @@ export const createMovie = async (req, res) => {
 };
 
 /* ================= ADMIN: GET ALL MOVIES ================= */
-// Admin: get all movies
 export const getAdminMovies = async (req, res) => {
   try {
     const movies = await Movie.find().sort({ createdAt: -1 });
@@ -62,7 +64,6 @@ export const getAdminMovies = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch admin movies" });
   }
 };
-
 
 /* ================= ADMIN: GET MOVIE BY ID ================= */
 export const getMovieById = async (req, res) => {
