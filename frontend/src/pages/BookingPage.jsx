@@ -5,6 +5,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 axios.defaults.withCredentials = true;
+const API_URL = import.meta.env.VITE_API_URL + "/api";
 
 const BookingPage = () => {
   const { movieId } = useParams();
@@ -108,12 +109,12 @@ const BookingPage = () => {
         try {
           const { latitude, longitude } = pos.coords;
           const res = await fetch(
-            `http://localhost:5000/api/location/city?lat=${latitude}&lng=${longitude}`
+            `${API_URL}/location/city?lat=${latitude}&lng=${longitude}`
           );
           const data = await res.json();
           setCity(data.city);
           setCityMode("auto");
-        } catch {
+        } catch (err) {
           setCityMode("manual");
           setLocationError("Unable to detect city");
         } finally {
@@ -138,7 +139,7 @@ const BookingPage = () => {
     if (!city) return;
 
     fetch(
-      `http://localhost:5000/api/theatres?city=${encodeURIComponent(
+      `${API_URL}/theatres?city=${encodeURIComponent(
         city.trim()
       )}`
     )
@@ -164,7 +165,7 @@ const BookingPage = () => {
     });
 
     fetch(
-      `http://localhost:5000/api/shows?movieId=${movieId}&theatreId=${theatre}&date=${date}`
+      `${API_URL}/shows?movieId=${movieId}&theatreId=${theatre}&date=${date}`
     )
       .then((res) => {
         if (!res.ok) {
@@ -186,7 +187,7 @@ const BookingPage = () => {
   useEffect(() => {
     if (!showId) return;
 
-    fetch(`http://localhost:5000/api/shows/${showId}/seats`)
+    fetch(`${API_URL}/shows/${showId}/seats`)
       .then((res) => res.json())
       .then((data) => {
         setSeats(Array.isArray(data) ? data : []);
@@ -214,7 +215,7 @@ const BookingPage = () => {
 
       // Step 1: Create order
       const orderResponse = await axios.post(
-        "http://localhost:5000/api/payment/create-order",
+        `${API_URL}/payment/create-order`,
         {
           showId,
           seats: selectedSeats,
@@ -237,7 +238,7 @@ const BookingPage = () => {
           try {
             // Step 3: Verify payment
             const verifyResponse = await axios.post(
-              "http://localhost:5000/api/payment/verify",
+              `${API_URL}/payment/verify`,
               {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
