@@ -5,6 +5,8 @@ import { Ticket, Calendar, MapPin, Clock, IndianRupee } from "lucide-react";
 
 axios.defaults.withCredentials = true;
 
+const API_URL = import.meta.env.VITE_API_URL + "/api";
+
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:5000/api/bookings/my-bookings"
+        `${API_URL}/bookings/my-bookings`
       );
       setBookings(response.data);
     } catch (error) {

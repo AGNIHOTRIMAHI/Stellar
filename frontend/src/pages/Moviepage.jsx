@@ -3,7 +3,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL + "/api";
+
 const Moviepage = () => {
+  
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -38,7 +41,7 @@ const Moviepage = () => {
   const fetchComments = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/comments/${id}`,
+        `${API_URL}/comments/${id}`,
         { credentials: "include" }
       );
       const data = await res.json();
@@ -54,7 +57,7 @@ const Moviepage = () => {
     if (!commentText.trim()) return;
 
     try {
-      const res = await fetch("http://localhost:5000/api/comments", {
+      const res = await fetch(`${API_URL}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
