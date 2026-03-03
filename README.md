@@ -55,7 +55,7 @@ Stellar is a premium, full-stack movie ticket booking application built using th
 ## 🚀 Installation & Setup
 
 1. **Clone & Install:**
-   git clone https://github.com/YashChauhan7060/stellar.git
+   git clone https://github.com/AGNIHOTRIMAHI/Stellar.git
    cd stellar
 
    npm install
@@ -64,7 +64,7 @@ Stellar is a premium, full-stack movie ticket booking application built using th
  npm run dev
    
 ## 🤝 Collaborators
-Mahi Agnihotri
-Yash Chauhan
-Lavanya Agarwal
-Kavya Singh
+•Mahi Agnihotri
+•Yash Chauhan
+•Lavanya Agarwal
+•Kavya Singh
